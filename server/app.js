@@ -9,21 +9,18 @@ const app = express();
 app.use(morgan('dev'));
 app.use(helmet());
 app.use(compression());
+app.use(express.json());
+app.use(express.urlencoded({
+  extended: true
+}));
 
 // init db
 require('./dbs/init.mongodb');
 const { countConnect } = require('./helpers/check.connect');
 countConnect()
 // init routes
-
+app.use('/', require('./routes'));
 // handling errors
 
-app.get('/', (req, res, next) => {
-  const strCompress = "Hello FANANANA";
-  return res.status(500).json({
-    messages: 'Welcome to NodeJS',
-    metadata: strCompress.repeat(10000),
-  });
-})
 
 module.exports = app;

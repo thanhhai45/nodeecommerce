@@ -1,5 +1,5 @@
 'use strict'
-
+console.log(process.env.DEV_DB_HOST)
 const dev = {
   app: {
     port: process.env.DEV_APP_PORT || 3055
