@@ -6,7 +6,8 @@ const crypto = require('crypto');
 const KeyTokenService = require('./keyToken.service');
 const { createTokenPair } = require('../auth/authUtils');
 const { getInfoData } = require('../utils');
-const { BadRequestError } = require('../core/error.response');
+const { BadRequestError, AuthFailureError } = require('../core/error.response');
+const { findByEmail } = require('./shop.service')
 const RoleShop = {
   SHOP: 'SHOP',
   WRITER: '0002',
@@ -15,6 +16,43 @@ const RoleShop = {
 }
 
 class AccessService {
+  static signIn = async ({ email, password, refreshToken = null }) => {
+    const foundShop = await findByEmail({ email })
+
+    if (!foundShop) throw new BadRequestError('Error: Shop not registed')
+
+    const match = bcrypt.compare(password, foundShop.password)
+    if (!match) throw new AuthFailureError('Authentication Error')
+
+    const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 4096,
+      publicKeyEncoding: {
+        type: 'pkcs1',
+        format: 'pem'
+      },
+      privateKeyEncoding: {
+        type: 'pkcs1',
+        format: 'pem'
+      }
+    })
+    const tokens = await createTokenPair({ userId: foundShop._id, email }, publicKey, privateKey)
+
+    await KeyTokenService.createKeyToken({
+      userId: foundShop._id,
+      publicKey,
+      privateKey,
+      refreshToken: tokens.refreshToken
+    })
+
+    return {
+      shop: getInfoData({
+        fields: ['_id', 'name', 'email'],
+        object: foundShop
+      }),
+      tokens
+    }
+  }
+
   static signUp = async ({ name, email, password }) => {
     // step 1: check exists email??
     const holderShop = await shopModel.findOne({ email }).lean()
@@ -49,7 +87,8 @@ class AccessService {
       // save token to database
       const publicKeyString = await KeyTokenService.createKeyToken({
         userId: newShop._id,
-        publicKey
+        publicKey,
+        privateKey
       })
 
       if (!publicKeyString) {
@@ -65,7 +104,7 @@ class AccessService {
       console.log(`Created Token Success:: ${tokens}`)
       return {
         code: 201,
-        metadate: {
+        metadata: {
           shop: getInfoData({
             fields: ['_id', 'name', 'email'],
             object: newShop

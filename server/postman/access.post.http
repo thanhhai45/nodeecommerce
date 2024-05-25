@@ -3,10 +3,20 @@
 
 POST {{url_dev}}/shop/signup
 Content-Type: application/json
-x-api-key: 162a80fdc4dbb710229bc2fe572fc43c6d9b593c6a5ef5adf229d71fb81de65834782e36737695397ab9a9801b91b945cc2b00d1234598ffae61d114ef161c3d
+x-api-key: a73aadef04aaad851a867a1903019e5eaf979f1bb24f0aa11384aec3a4c7176845f839ba59ee9fad6fbf39a9b801a386392c2273ebc129d4725d722154b3a9c1
 
 {
   "name": "Test API",
   "email": "testapi06@example.com",
   "password": "abc123"
+}
+
+### sign in
+POST {{url_dev}}/shop/signin
+Content-Type: application/json
+x-api-key: a73aadef04aaad851a867a1903019e5eaf979f1bb24f0aa11384aec3a4c7176845f839ba59ee9fad6fbf39a9b801a386392c2273ebc129d4725d722154b3a9c1
+
+{
+  "email": "testapi06@example.com",
+  "password": "abc1234"
 }
