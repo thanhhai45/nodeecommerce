@@ -4,10 +4,11 @@ const shopModel = require('../models/shop.model');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const KeyTokenService = require('./keyToken.service');
-const { createTokenPair } = require('../auth/authUtils');
+const { createTokenPair, verifyJWT } = require('../auth/authUtils');
 const { getInfoData } = require('../utils');
-const { BadRequestError, AuthFailureError } = require('../core/error.response');
-const { findByEmail } = require('./shop.service')
+const { BadRequestError, AuthFailureError, ForbiddenError } = require('../core/error.response');
+const { findByEmail } = require('./shop.service');
+const keyTokenModel = require('../models/keyToken.model');
 const RoleShop = {
   SHOP: 'SHOP',
   WRITER: '0002',
@@ -16,6 +17,47 @@ const RoleShop = {
 }
 
 class AccessService {
+
+  static handlerRefreshToken = async ({ refreshToken, user, keyStore }) => {
+    const { userId, email } = user;
+
+    if (keyStore.refreshTokensUsed.includes(refreshToken)) {
+      await KeyTokenService.deleteKey(userId)
+      throw new ForbiddenError("Something wrong happend!! Please resignin")
+    }
+
+    if (keyStore.refreshToken !== refreshToken) {
+      throw new AuthFailureError("Shop not registered")
+    }
+
+    const foundShop = await findByEmail({ email })
+    if (!foundShop) throw new AuthFailureError("Shop not registered")
+
+    const tokens = await createTokenPair({ userId, email }, keyStore.publicKey, keyStore.privateKey)
+    await keyTokenModel.updateOne(
+      { _id: keyStore._id },
+      {
+        $set: {
+          refreshToken: tokens.refreshToken
+        },
+        $addToSet: {
+          refreshTokensUsed: refreshToken
+        }
+      }
+    );
+
+    return {
+      user,
+      tokens
+    }
+  }
+
+  static signOut = async (keyStore) => {
+    console.log("keyStore", keyStore._id);
+    const delKey = await KeyTokenService.removeKeyById(keyStore._id)
+    return delKey
+  }
+
   static signIn = async ({ email, password, refreshToken = null }) => {
     const foundShop = await findByEmail({ email })
 

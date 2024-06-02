@@ -5,6 +5,24 @@ const AccessService = require("../services/access.service");
 
 class AccessController {
 
+  handlerRefreshToken = async (req, res, next) => {
+    new SuccessResponse({
+      message: 'Get token success!',
+      metadata: await AccessService.handlerRefreshToken({
+        refreshToken: req.refreshToken,
+        user: req.user,
+        keyStore: req.keyStore
+      })
+    }).send(res)
+  }
+
+  signOut = async (req, res, next) => {
+    new SuccessResponse({
+      message: 'Logout success!',
+      metadata: await AccessService.signOut(req.keyStore)
+    }).send(res)
+  }
+
   signIn = async (req, res, next) => {
     new SuccessResponse({
       metadata: await AccessService.signIn(req.body)
@@ -20,6 +38,7 @@ class AccessController {
       }
     }).send(res)
   }
+
 }
 
 module.exports = new AccessController();
